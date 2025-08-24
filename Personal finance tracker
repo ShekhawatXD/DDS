@@ -1,0 +1,157 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_TRANSACTIONS 100
+#define FILENAME "finance.dat"
+
+typedef struct {
+    char date[11];
+    char description[50];
+    float amount;
+    char type; // 'I' for income, 'E' for expense
+} Transaction;
+
+Transaction transactions[MAX_TRANSACTIONS];
+int count = 0;
+
+void addTransaction() {
+    if (count >= MAX_TRANSACTIONS) {
+        printf("Transaction limit reached!\n");
+        return;
+    }
+    
+    printf("Enter date (YYYY-MM-DD): ");
+    scanf("%s", transactions[count].date);
+    printf("Enter description: ");
+    scanf(" %[^\n]", transactions[count].description);
+    printf("Enter amount: ");
+    scanf("%f", &transactions[count].amount);
+    printf("Enter type (I for Income, E for Expense): ");
+    scanf(" %c", &transactions[count].type);
+    
+    count++;
+    printf("Transaction added successfully!\n");
+}
+
+void displayTransactions() {
+    printf("\n%-12s %-20s %-10s %-8s\n", "Date", "Description", "Amount", "Type");
+    printf("------------------------------------------------------------\n");
+    
+    for (int i = 0; i < count; i++) {
+        printf("%-12s %-20s $%-9.2f %-8s\n", 
+               transactions[i].date,
+               transactions[i].description,
+               transactions[i].amount,
+               transactions[i].type == 'I' ? "Income" : "Expense");
+    }
+}
+
+void filterExpenses(float minAmount) {
+    printf("\nExpenses over $%.2f:\n", minAmount);
+    printf("%-12s %-20s %-10s\n", "Date", "Description", "Amount");
+    printf("--------------------------------------------\n");
+    
+    for (int i = 0; i < count; i++) {
+        if (transactions[i].type == 'E' && transactions[i].amount >= minAmount) {
+            printf("%-12s %-20s $%-9.2f\n", 
+                   transactions[i].date,
+                   transactions[i].description,
+                   transactions[i].amount);
+        }
+    }
+}
+
+void sortByAmount() {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            if (transactions[j].amount < transactions[j + 1].amount) {
+                Transaction temp = transactions[j];
+                transactions[j] = transactions[j + 1];
+                transactions[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void saveToFile() {
+    FILE *file = fopen(FILENAME, "wb");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+    
+    fwrite(&count, sizeof(int), 1, file);
+    fwrite(transactions, sizeof(Transaction), count, file);
+    fclose(file);
+    printf("Data saved successfully!\n");
+}
+
+void loadFromFile() {
+    FILE *file = fopen(FILENAME, "rb");
+    if (file == NULL) {
+        printf("No previous data found.\n");
+        return;
+    }
+    
+    fread(&count, sizeof(int), 1, file);
+    fread(transactions, sizeof(Transaction), count, file);
+    fclose(file);
+    printf("Data loaded successfully!\n");
+}
+
+void showMonthlyChart() {
+    char months[12][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    float monthlyExpenses[12] = {0};
+    
+    for (int i = 0; i < count; i++) {
+        if (transactions[i].type == 'E') {
+            int month;
+            sscanf(transactions[i].date, "%*4d-%2d-%*2d", &month);
+            monthlyExpenses[month - 1] += transactions[i].amount;
+        }
+    }
+    
+    printf("\nMonthly Expenses Chart:\n");
+    for (int i = 0; i < 12; i++) {
+        printf("%s: ", months[i]);
+        int bars = (int)(monthlyExpenses[i] / 50);
+        for (int j = 0; j < bars; j++) {
+            printf("█");
+        }
+        printf(" $%.2f\n", monthlyExpenses[i]);
+    }
+}
+
+int main() {
+    int choice;
+    loadFromFile();
+    
+    do {
+        printf("\nPersonal Finance Tracker\n");
+        printf("1. Add Transaction\n");
+        printf("2. View All Transactions\n");
+        printf("3. Filter Expenses (over $100)\n");
+        printf("4. Sort by Amount\n");
+        printf("5. Show Monthly Chart\n");
+        printf("6. Save Data\n");
+        printf("7. Exit\n");
+        printf("Choice: ");
+        scanf("%d", &choice);
+        
+        switch(choice) {
+            case 1: addTransaction(); break;
+            case 2: displayTransactions(); break;
+            case 3: filterExpenses(100.0); break;
+            case 4: sortByAmount(); displayTransactions(); break;
+            case 5: showMonthlyChart(); break;
+            case 6: saveToFile(); break;
+            case 7: saveToFile(); printf("Goodbye!\n"); break;
+            default: printf("Invalid choice!\n");
+        }
+    } while (choice != 7);
+    
+    return 0;
+}
