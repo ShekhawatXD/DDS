@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Car {
+    char licensePlate[20];
+    char entryTime[20];
+    struct Car* next;
+} Car;
+
+typedef struct {
+    Car* head;
+    int capacity;
+    int currentCount;
+} ParkingLot;
+
+ParkingLot* createParkingLot(int capacity) {
+    ParkingLot* lot = (ParkingLot*)malloc(sizeof(ParkingLot));
+    lot->head = NULL;
+    lot->capacity = capacity;
+    lot->currentCount = 0;
+    return lot;
+}
+
+void parkCar(ParkingLot* lot, const char* licensePlate, const char* entryTime) {
+    if (lot->currentCount >= lot->capacity) {
+        printf("Parking lot is full! Cannot park %s\n", licensePlate);
+        return;
+    }
+    
+    Car* newCar = (Car*)malloc(sizeof(Car));
+    strcpy(newCar->licensePlate, licensePlate);
+    strcpy(newCar->entryTime, entryTime);
+    newCar->next = lot->head;
+    lot->head = newCar;
+    lot->currentCount++;
+    
+    printf("Car %s parked successfully at %s\n", licensePlate, entryTime);
+}
+
+void removeCar(ParkingLot* lot, const char* licensePlate) {
+    Car* current = lot->head;
+    Car* prev = NULL;
+    
+    while (current != NULL) {
+        if (strcmp(current->licensePlate, licensePlate) == 0) {
+            if (prev == NULL) {
+                lot->head = current->next;
+            } else {
+                prev->next = current->next;
+            }
+            
+            printf("Car %s removed from parking lot\n", licensePlate);
+            free(current);
+            lot->currentCount--;
+            return;
+        }
+        prev = current;
+        current = current->next;
+    }
+    
+    printf("Car %s not found in parking lot\n", licensePlate);
+}
+
+void displayParkingLot(ParkingLot* lot) {
+    printf("\nParking Lot Status (%d/%d):\n", lot->currentCount, lot->capacity);
+    printf("-----------------------------\n");
+    
+    Car* current = lot->head;
+    while (current != NULL) {
+        printf("License: %s, Entry: %s\n", 
+               current->licensePlate, current->entryTime);
+        current = current->next;
+    }
+}
+
+int main() {
+    ParkingLot* lot = createParkingLot(5);
+    int choice;
+    char license[20], time[20];
+    
+    do {
+        printf("\nSmart Parking Management\n");
+        printf("1. Park Car\n");
+        printf("2. Remove Car\n");
+        printf("3. Display Cars\n");
+        printf("4. Exit\n");
+        printf("Choice: ");
+        scanf("%d", &choice);
+        
+        switch(choice) {
+            case 1:
+                printf("Enter license plate: ");
+                scanf("%s", license);
+                printf("Enter entry time: ");
+                scanf("%s", time);
+                parkCar(lot, license, time);
+                break;
+            case 2:
+                printf("Enter license plate to remove: ");
+                scanf("%s", license);
+                removeCar(lot, license);
+                break;
+            case 3:
+                displayParkingLot(lot);
+                break;
+            case 4:
+                printf("Goodbye!\n");
+                break;
+            default:
+                printf("Invalid choice!\n");
+        }
+    } while (choice != 4);
+    
+    return 0;
+}
