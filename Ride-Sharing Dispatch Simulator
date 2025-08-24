@@ -1,0 +1,154 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_DRIVERS 50
+#define MAX_RIDERS 50
+
+typedef struct {
+    int id;
+    char name[50];
+    float x, y;
+    float rating;
+    int available;
+} Driver;
+
+typedef struct {
+    int id;
+    char name[50];
+    float x, y;
+    float rating;
+    int status; // 0: waiting, 1: assigned, 2: completed
+} Rider;
+
+typedef struct {
+    int rideId;
+    int driverId;
+    int riderId;
+    float distance;
+    char timestamp[20];
+} RideHistory;
+
+Driver drivers[MAX_DRIVERS];
+Rider riders[MAX_RIDERS];
+RideHistory history[1000];
+int driverCount = 0, riderCount = 0, historyCount = 0;
+
+float calculateDistance(float x1, float y1, float x2, float y2) {
+    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+}
+
+void addDriver() {
+    printf("Enter driver name: ");
+    scanf(" %[^\n]", drivers[driverCount].name);
+    printf("Enter location (x y): ");
+    scanf("%f %f", &drivers[driverCount].x, &drivers[driverCount].y);
+    printf("Enter rating (0-5): ");
+    scanf("%f", &drivers[driverCount].rating);
+    drivers[driverCount].id = driverCount + 1;
+    drivers[driverCount].available = 1;
+    driverCount++;
+}
+
+void addRider() {
+    printf("Enter rider name: ");
+    scanf(" %[^\n]", riders[riderCount].name);
+    printf("Enter location (x y): ");
+    scanf("%f %f", &riders[riderCount].x, &riders[riderCount].y);
+    printf("Enter rating (0-5): ");
+    scanf("%f", &riders[riderCount].rating);
+    riders[riderCount].id = riderCount + 1;
+    riders[riderCount].status = 0;
+    riderCount++;
+}
+
+void assignDriver() {
+    if (riderCount == 0 || driverCount == 0) {
+        printf("No riders or drivers available!\n");
+        return;
+    }
+    
+    int riderId = -1;
+    for (int i = 0; i < riderCount; i++) {
+        if (riders[i].status == 0) {
+            riderId = i;
+            break;
+        }
+    }
+    
+    if (riderId == -1) {
+        printf("No waiting riders!\n");
+        return;
+    }
+    
+    int bestDriver = -1;
+    float minDistance = 1000000;
+    
+    for (int i = 0; i < driverCount; i++) {
+        if (drivers[i].available) {
+            float dist = calculateDistance(drivers[i].x, drivers[i].y, 
+                                         riders[riderId].x, riders[riderId].y);
+            if (dist < minDistance) {
+                minDistance = dist;
+                bestDriver = i;
+            }
+        }
+    }
+    
+    if (bestDriver == -1) {
+        printf("No available drivers!\n");
+        return;
+    }
+    
+    drivers[bestDriver].available = 0;
+    riders[riderId].status = 1;
+    
+    history[historyCount].rideId = historyCount + 1;
+    history[historyCount].driverId = drivers[bestDriver].id;
+    history[historyCount].riderId = riders[riderId].id;
+    history[historyCount].distance = minDistance;
+    strcpy(history[historyCount].timestamp, "2024-01-01 12:00");
+    historyCount++;
+    
+    printf("Assigned Driver %s to Rider %s (Distance: %.2f)\n", 
+           drivers[bestDriver].name, riders[riderId].name, minDistance);
+}
+
+void showHistory() {
+    printf("\nRide History:\n");
+    printf("%-8s %-20s %-20s %-10s\n", "RideID", "Driver", "Rider", "Distance");
+    for (int i = 0; i < historyCount; i++) {
+        printf("%-8d %-20s %-20s %-10.2f\n", 
+               history[i].rideId,
+               drivers[history[i].driverId-1].name,
+               riders[history[i].riderId-1].name,
+               history[i].distance);
+    }
+}
+
+int main() {
+    int choice;
+    
+    do {
+        printf("\nRide-Sharing Dispatch\n");
+        printf("1. Add Driver\n");
+        printf("2. Add Rider\n");
+        printf("3. Assign Driver\n");
+        printf("4. Show History\n");
+        printf("5. Exit\n");
+        printf("Choice: ");
+        scanf("%d", &choice);
+        
+        switch(choice) {
+            case 1: addDriver(); break;
+            case 2: addRider(); break;
+            case 3: assignDriver(); break;
+            case 4: showHistory(); break;
+            case 5: printf("Goodbye!\n"); break;
+            default: printf("Invalid choice!\n");
+        }
+    } while (choice != 5);
+    
+    return 0;
+}
